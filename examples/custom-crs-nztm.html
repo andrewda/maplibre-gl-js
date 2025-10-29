@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom CRS - EPSG:2193 (New Zealand Transverse Mercator)</title>
+    <script src="../dist/maplibre-gl-dev.js"></script>
+    <link rel="stylesheet" href="../dist/maplibre-gl.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        .info-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            max-width: 400px;
+            z-index: 1;
+        }
+        .info-box h2 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .info-box pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .coordinates {
+            margin-top: 10px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-box">
+        <h2>Custom CRS Example - EPSG:2193</h2>
+        <p>This example demonstrates MapLibre GL JS rendering with a custom coordinate reference system (CRS).</p>
+        <p><strong>Projection:</strong> New Zealand Transverse Mercator 2000</p>
+        <p><strong>EPSG Code:</strong> 2193</p>
+        <div class="coordinates">
+            <div><strong>Center (WGS84):</strong> <span id="wgs84-coords">-</span></div>
+            <div><strong>Center (NZTM):</strong> <span id="nztm-coords">-</span></div>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        // Create a custom CRS projection for EPSG:2193 (New Zealand Transverse Mercator 2000)
+        const nztmConfig = {
+            code: 'EPSG:2193',
+            // Proj4 definition for NZTM2000
+            definition: '+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+            // Bounds of New Zealand in NZTM coordinates [minX, minY, maxX, maxY]
+            // These roughly correspond to the extent of New Zealand
+            bounds: [274000, 3087000, 3327000, 7173000]
+        };
+
+        // Create the custom CRS projection
+        const {projection, transform, cameraHelper} = maplibregl.createCustomCRSProjection(nztmConfig);
+
+        // IMPORTANT: Custom CRS support in this implementation is a proof-of-concept.
+        // For full production use, additional work would be needed:
+        // 1. Integration with the Map class to use custom transforms
+        // 2. Per-source CRS specification for vector tiles
+        // 3. Full shader support for coordinate transformations
+        // 4. Proper tile URL transformation for different CRS
+
+        // This example demonstrates the API and coordinate transformation capabilities.
+        console.log('Custom CRS Projection created:', projection);
+        console.log('CRS Config:', projection.config);
+
+        // Test coordinate transformations
+        const testLngLat = [174.0, -41.0]; // Wellington, New Zealand
+        const [nztmX, nztmY] = projection.transformFromWGS84(testLngLat[0], testLngLat[1]);
+        console.log(`Wellington WGS84: [${testLngLat}]`);
+        console.log(`Wellington NZTM: [${nztmX.toFixed(2)}, ${nztmY.toFixed(2)}]`);
+
+        // Transform back to verify
+        const [lngBack, latBack] = projection.transformToWGS84(nztmX, nztmY);
+        console.log(`Back to WGS84: [${lngBack.toFixed(6)}, ${latBack.toFixed(6)}]`);
+
+        // Example of setting center using NZTM coordinates
+        const wellingtonNZTM = [1748571, 5427635]; // Wellington in NZTM
+        const [wellingtonLng, wellingtonLat] = projection.transformToWGS84(wellingtonNZTM[0], wellingtonNZTM[1]);
+
+        // For this demo, we'll create a standard map centered on New Zealand
+        // In a full implementation, the map would use the custom transform directly
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                version: 8,
+                sources: {
+                    'osm': {
+                        type: 'raster',
+                        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        tileSize: 256,
+                        attribution: '© OpenStreetMap contributors'
+                    }
+                },
+                layers: [{
+                    id: 'osm',
+                    type: 'raster',
+                    source: 'osm',
+                    minzoom: 0,
+                    maxzoom: 19
+                }]
+            },
+            center: [wellingtonLng, wellingtonLat],
+            zoom: 5
+        });
+
+        // Update coordinate display
+        function updateCoordinates() {
+            const center = map.getCenter();
+            const [nztmX, nztmY] = projection.transformFromWGS84(center.lng, center.lat);
+
+            document.getElementById('wgs84-coords').textContent =
+                `${center.lng.toFixed(6)}, ${center.lat.toFixed(6)}`;
+            document.getElementById('nztm-coords').textContent =
+                `${nztmX.toFixed(2)}, ${nztmY.toFixed(2)} m`;
+        }
+
+        map.on('load', () => {
+            updateCoordinates();
+
+            // Add markers for major NZ cities with their NZTM coordinates
+            const cities = [
+                { name: 'Auckland', nztm: [1757149, 5920294] },
+                { name: 'Wellington', nztm: [1748571, 5427635] },
+                { name: 'Christchurch', nztm: [1571287, 5182699] },
+                { name: 'Dunedin', nztm: [1406319, 4915038] }
+            ];
+
+            cities.forEach(city => {
+                const [lng, lat] = projection.transformToWGS84(city.nztm[0], city.nztm[1]);
+
+                const el = document.createElement('div');
+                el.style.backgroundColor = '#3887be';
+                el.style.width = '20px';
+                el.style.height = '20px';
+                el.style.borderRadius = '50%';
+                el.style.border = '2px solid white';
+
+                new maplibregl.Marker(el)
+                    .setLngLat([lng, lat])
+                    .setPopup(new maplibregl.Popup().setHTML(
+                        `<strong>${city.name}</strong><br>` +
+                        `WGS84: ${lng.toFixed(4)}, ${lat.toFixed(4)}<br>` +
+                        `NZTM: ${city.nztm[0]}, ${city.nztm[1]}`
+                    ))
+                    .addTo(map);
+            });
+        });
+
+        map.on('move', updateCoordinates);
+
+        // Log transformation examples
+        console.log('\n=== NZTM Transformation Examples ===');
+        cities = [
+            { name: 'Auckland', lng: 174.7633, lat: -36.8485 },
+            { name: 'Wellington', lng: 174.7762, lat: -41.2865 },
+            { name: 'Christchurch', lng: 172.6362, lat: -43.5321 },
+            { name: 'Dunedin', lng: 170.5028, lat: -45.8788 }
+        ];
+
+        cities.forEach(city => {
+            const [x, y] = projection.transformFromWGS84(city.lng, city.lat);
+            console.log(`${city.name}:`);
+            console.log(`  WGS84: ${city.lng}, ${city.lat}`);
+            console.log(`  NZTM:  ${x.toFixed(0)}, ${y.toFixed(0)}`);
+        });
+    </script>
+</body>
+</html>
