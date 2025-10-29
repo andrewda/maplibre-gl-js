@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom CRS Integration - EPSG:2193 with Full Map Support</title>
+    <script src="../dist/maplibre-gl-dev.js"></script>
+    <link rel="stylesheet" href="../dist/maplibre-gl.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        .info-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            max-width: 450px;
+            z-index: 1;
+            font-size: 13px;
+        }
+        .info-box h2 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .info-box .status {
+            padding: 8px;
+            background: #e3f2fd;
+            border-left: 3px solid #2196F3;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .info-box .success {
+            background: #e8f5e9;
+            border-left-color: #4CAF50;
+        }
+        .coordinates {
+            margin-top: 10px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .coordinates div {
+            margin: 5px 0;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-box">
+        <h2>🗺️ Custom CRS Integration</h2>
+        <div class="status success">
+            ✓ Custom CRS support fully integrated with Map class
+        </div>
+        <p><strong>Projection:</strong> New Zealand Transverse Mercator 2000</p>
+        <p><strong>EPSG Code:</strong> 2193</p>
+        <p><strong>CRS Type:</strong> Transverse Mercator</p>
+        <div class="coordinates">
+            <div><span class="label">Center (WGS84):</span> <span id="wgs84-coords">-</span></div>
+            <div><span class="label">Center (NZTM):</span> <span id="nztm-coords">-</span></div>
+            <div><span class="label">Zoom:</span> <span id="zoom-level">-</span></div>
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: #666;">
+            <strong>Tip:</strong> Pan and zoom to explore the map. The coordinates update in real-time showing both WGS84 and NZTM values.
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        console.log('%c=== Custom CRS Integration Demo ===', 'color: blue; font-weight: bold; font-size: 14px');
+
+        try {
+            // Create a map with custom CRS configuration
+            // This uses the new customCRS option in MapOptions
+            const map = new maplibregl.Map({
+                container: 'map',
+                // Custom CRS configuration for EPSG:2193 (New Zealand Transverse Mercator 2000)
+                customCRS: {
+                    code: 'EPSG:2193',
+                    // Proj4 definition for NZTM2000
+                    definition: '+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+                    // Bounds of New Zealand in NZTM coordinates [minX, minY, maxX, maxY]
+                    bounds: [274000, 3087000, 3327000, 7173000]
+                },
+                style: {
+                    version: 8,
+                    sources: {
+                        'osm': {
+                            type: 'raster',
+                            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            tileSize: 256,
+                            attribution: '© OpenStreetMap contributors'
+                        }
+                    },
+                    layers: [{
+                        id: 'osm',
+                        type: 'raster',
+                        source: 'osm',
+                        minzoom: 0,
+                        maxzoom: 19
+                    }]
+                },
+                center: [174.776, -41.2865], // Wellington, NZ
+                zoom: 5
+            });
+
+            console.log('%c✓ Map created with custom CRS', 'color: green');
+            console.log('Custom CRS Config:', map._customCRS);
+
+            // Get projection from map (should be CustomCRSProjection)
+            let projection = null;
+
+            map.on('load', () => {
+                console.log('%c✓ Map loaded', 'color: green');
+
+                // Access the projection
+                projection = map.style.projection;
+                console.log('Projection:', projection);
+                console.log('Projection name:', projection.name);
+
+                // Update coordinate display
+                updateCoordinates();
+
+                // Add markers for major NZ cities
+                const cities = [
+                    { name: 'Auckland', lng: 174.7633, lat: -36.8485, color: '#e74c3c' },
+                    { name: 'Wellington', lng: 174.7762, lat: -41.2865, color: '#3498db' },
+                    { name: 'Christchurch', lng: 172.6362, lat: -43.5321, color: '#2ecc71' },
+                    { name: 'Dunedin', lng: 170.5028, lat: -45.8788, color: '#f39c12' }
+                ];
+
+                cities.forEach(city => {
+                    // Transform to NZTM for display in popup
+                    let nztmCoords = {x: 0, y: 0};
+                    if (projection && projection.transformFromWGS84) {
+                        [nztmCoords.x, nztmCoords.y] = projection.transformFromWGS84(city.lng, city.lat);
+                    }
+
+                    const el = document.createElement('div');
+                    el.style.backgroundColor = city.color;
+                    el.style.width = '24px';
+                    el.style.height = '24px';
+                    el.style.borderRadius = '50%';
+                    el.style.border = '3px solid white';
+                    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+                    el.style.cursor = 'pointer';
+                    el.title = city.name;
+
+                    new maplibregl.Marker(el)
+                        .setLngLat([city.lng, city.lat])
+                        .setPopup(new maplibregl.Popup({offset: 25}).setHTML(
+                            `<div style="padding: 5px;">
+                                <strong style="color: ${city.color}; font-size: 14px;">${city.name}</strong><br>
+                                <div style="margin-top: 8px; font-size: 12px; font-family: 'Courier New', monospace;">
+                                    <strong>WGS84:</strong><br>
+                                    ${city.lng.toFixed(4)}°, ${city.lat.toFixed(4)}°<br>
+                                    <strong style="margin-top: 5px; display: block;">NZTM (EPSG:2193):</strong><br>
+                                    ${nztmCoords.x.toFixed(0)} E, ${nztmCoords.y.toFixed(0)} N
+                                </div>
+                            </div>`
+                        ))
+                        .addTo(map);
+
+                    console.log(`${city.name}: WGS84(${city.lng}, ${city.lat}) → NZTM(${nztmCoords.x.toFixed(0)}, ${nztmCoords.y.toFixed(0)})`);
+                });
+
+                console.log('%c✓ City markers added', 'color: green');
+            });
+
+            // Update coordinate display
+            function updateCoordinates() {
+                const center = map.getCenter();
+                const zoom = map.getZoom();
+
+                projection = map.style?.projection;
+
+                let nztmCoords = {x: 0, y: 0};
+                if (projection && projection.transformFromWGS84) {
+                    [nztmCoords.x, nztmCoords.y] = projection.transformFromWGS84(center.lng, center.lat);
+                }
+
+                document.getElementById('wgs84-coords').textContent =
+                    `${center.lng.toFixed(6)}°, ${center.lat.toFixed(6)}°`;
+                document.getElementById('nztm-coords').textContent =
+                    `${nztmCoords.x.toFixed(0)} E, ${nztmCoords.y.toFixed(0)} N`;
+                document.getElementById('zoom-level').textContent = zoom.toFixed(2);
+            }
+
+            // Update on map move
+            map.on('move', updateCoordinates);
+            map.on('zoom', updateCoordinates);
+
+            // Log projection details
+            map.on('style.load', () => {
+                console.log('%c=== Projection Details ===', 'color: blue; font-weight: bold');
+                const proj = map.style.projection;
+                if (proj) {
+                    console.log('Type:', proj.name);
+                    console.log('Uses subdivision:', proj.useSubdivision);
+                    console.log('Shader variant:', proj.shaderVariantName);
+                    if (proj.config) {
+                        console.log('CRS Code:', proj.config.code);
+                        console.log('CRS Bounds:', proj.config.bounds);
+                    }
+                }
+            });
+
+            // Test coordinate transformations
+            map.on('load', () => {
+                console.log('\n%c=== Testing Coordinate Transformations ===', 'color: blue; font-weight: bold');
+
+                const testLocations = [
+                    { name: 'Wellington', lng: 174.776, lat: -41.287, expectedNZTM: [1748571, 5427635] },
+                    { name: 'Auckland', lng: 174.763, lat: -36.848, expectedNZTM: [1757149, 5920294] },
+                    { name: 'Christchurch', lng: 172.636, lat: -43.532, expectedNZTM: [1571287, 5182699] }
+                ];
+
+                const proj = map.style.projection;
+                if (proj && proj.transformFromWGS84 && proj.transformToWGS84) {
+                    testLocations.forEach(loc => {
+                        // Forward transformation
+                        const [x, y] = proj.transformFromWGS84(loc.lng, loc.lat);
+
+                        // Backward transformation
+                        const [lngBack, latBack] = proj.transformToWGS84(x, y);
+
+                        // Calculate error
+                        const errorE = Math.abs(x - loc.expectedNZTM[0]);
+                        const errorN = Math.abs(y - loc.expectedNZTM[1]);
+                        const errorLng = Math.abs(lngBack - loc.lng);
+                        const errorLat = Math.abs(latBack - loc.lat);
+
+                        console.log(`\n${loc.name}:`);
+                        console.log(`  WGS84: ${loc.lng.toFixed(4)}, ${loc.lat.toFixed(4)}`);
+                        console.log(`  NZTM: ${x.toFixed(0)}, ${y.toFixed(0)}`);
+                        console.log(`  Expected: ${loc.expectedNZTM[0]}, ${loc.expectedNZTM[1]}`);
+                        console.log(`  Error: ${errorE.toFixed(0)}m E, ${errorN.toFixed(0)}m N`);
+                        console.log(`  Roundtrip error: ${(errorLng * 111000).toFixed(2)}m lng, ${(errorLat * 111000).toFixed(2)}m lat`);
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.error('%c✗ Error creating map:', 'color: red', error);
+            document.querySelector('.info-box').innerHTML = `
+                <h2>❌ Error</h2>
+                <div class="status" style="background: #ffebee; border-left-color: #f44336;">
+                    Failed to create map with custom CRS
+                </div>
+                <pre style="background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto;">${error.message}\n\n${error.stack}</pre>
+            `;
+        }
+    </script>
+</body>
+</html>

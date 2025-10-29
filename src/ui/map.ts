@@ -279,6 +279,22 @@ export type MapOptions = {
      */
     transformConstrain?: TransformConstrainFunction | null;
     /**
+     * Custom coordinate reference system (CRS) configuration for the map.
+     * When provided, the map will use this custom CRS instead of the default Web Mercator.
+     * Requires the proj4 library for coordinate transformations.
+     * @see [Custom CRS documentation](CUSTOM_CRS_SUPPORT.md)
+     * @example
+     * ```typescript
+     * {
+     *   code: 'EPSG:2193',
+     *   definition: '+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +units=m +no_defs',
+     *   bounds: [274000, 3087000, 3327000, 7173000]
+     * }
+     * ```
+     * @defaultValue null
+     */
+    customCRS?: import('../geo/projection/custom_crs_projection').CustomCRSConfig | null;
+    /**
      * A patch to apply to the default localization table for UI strings, e.g. control tooltips. The `locale` object maps namespaced UI string IDs to translated strings in the target language; see `src/ui/default_locale.js` for an example with all supported string IDs. The object may specify all UI strings (thereby adding support for a new translation) or only a subset of strings (thereby patching the default translation table).
      * For an example, see https://maplibre.org/maplibre-gl-js/docs/examples/locale-switching/
      * Alternatively, search the official plugins page for plugins related to localization.
@@ -444,6 +460,7 @@ const defaultOptions: Readonly<Partial<MapOptions>> = {
     transformRequest: null,
     transformCameraUpdate: null,
     transformConstrain: null,
+    customCRS: null,
     fadeDuration: 300,
     crossSourceCollisions: true,
     clickTolerance: 3,
@@ -614,6 +631,12 @@ export class Map extends Camera {
      */
     transformConstrain: TransformConstrainFunction | null;
 
+    /**
+     * Custom CRS configuration for the map.
+     * @internal
+     */
+    _customCRS: import('../geo/projection/custom_crs_projection').CustomCRSConfig | null;
+
     constructor(options: MapOptions) {
         PerformanceUtils.mark(PerformanceMarkers.create);
 
@@ -681,6 +704,7 @@ export class Map extends Camera {
         this._maxCanvasSize = resolvedOptions.maxCanvasSize;
         this.transformCameraUpdate = resolvedOptions.transformCameraUpdate;
         this.transformConstrain = resolvedOptions.transformConstrain;
+        this._customCRS = resolvedOptions.customCRS || null;
         this.cancelPendingTileRequestsWhileZooming = resolvedOptions.cancelPendingTileRequestsWhileZooming === true;
 
         this._imageQueueHandle = ImageRequest.addThrottleControl(() => this.isMoving());

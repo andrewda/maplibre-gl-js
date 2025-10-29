@@ -16,12 +16,22 @@ import type {Projection} from './projection';
 import type {ITransform, TransformConstrainFunction} from '../transform_interface';
 import type {ICameraHelper} from './camera_helper';
 
-export function createProjectionFromName(name: ProjectionSpecification['type'], transformConstrain?: TransformConstrainFunction): {
+export function createProjectionFromName(
+    name: ProjectionSpecification['type'],
+    transformConstrain?: TransformConstrainFunction,
+    customCRSConfig?: CustomCRSConfig | null
+): {
     projection: Projection;
     transform: ITransform;
     cameraHelper: ICameraHelper;
 } {
     const transformOptions = {constrain: transformConstrain};
+
+    // If custom CRS config is provided, use it regardless of the projection name
+    if (customCRSConfig) {
+        return createCustomCRSProjection(customCRSConfig, transformConstrain);
+    }
+
     if (Array.isArray(name)) {
         const globeProjection = new GlobeProjection({type: name});
         return {

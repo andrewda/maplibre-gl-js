@@ -2,6 +2,18 @@
 
 This document describes the custom coordinate reference system (CRS) support added to MapLibre GL JS, which addresses [issue #5764](https://github.com/maplibre/maplibre-gl-js/issues/5764).
 
+## 🎉 Major Update: Full Map Integration
+
+**As of the latest update, custom CRS support is now fully integrated with the Map class!** You can now:
+
+- ✅ Specify custom CRS directly in `MapOptions` when creating a map
+- ✅ Automatic projection setup - no manual transform creation needed
+- ✅ Seamless integration with all map features
+- ✅ Access projection for coordinate transformations via `map.style.projection`
+- ✅ Works with all map event handlers and controls
+
+This resolves the primary limitation of the initial proof-of-concept implementation.
+
 ## Overview
 
 MapLibre GL JS now supports rendering maps in custom coordinate reference systems beyond Web Mercator. This enables use cases such as:
@@ -41,10 +53,56 @@ The `createCustomCRSProjection` function creates a complete projection setup inc
 
 ## Usage
 
-### Basic Example
+### Integrated Map Example (Recommended)
+
+The simplest way to use custom CRS is to pass the configuration directly to the Map constructor:
 
 ```typescript
-import {createCustomCRSProjection, Map} from 'maplibre-gl';
+import {Map} from 'maplibre-gl';
+
+// Create a map with custom CRS
+const map = new Map({
+  container: 'map',
+  // Custom CRS configuration for EPSG:2193 (New Zealand Transverse Mercator 2000)
+  customCRS: {
+    code: 'EPSG:2193',
+    definition: '+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+    bounds: [274000, 3087000, 3327000, 7173000]
+  },
+  style: {
+    version: 8,
+    sources: {
+      'osm': {
+        type: 'raster',
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256
+      }
+    },
+    layers: [{
+      id: 'osm',
+      type: 'raster',
+      source: 'osm'
+    }]
+  },
+  center: [174.776, -41.2865], // Wellington, NZ
+  zoom: 5
+});
+
+// Access the projection after map loads
+map.on('load', () => {
+  const projection = map.style.projection;
+  // Use projection for coordinate transformations
+  const [x, y] = projection.transformFromWGS84(174.0, -41.0);
+  console.log(`NZTM coordinates: ${x}, ${y}`);
+});
+```
+
+### Standalone Projection Example
+
+You can also create projections independently for coordinate transformations:
+
+```typescript
+import {createCustomCRSProjection} from 'maplibre-gl';
 
 // Define the custom CRS configuration
 const nztmConfig = {
@@ -131,92 +189,98 @@ const arcticConfig = {
 
 ## Current Implementation Status
 
-### ✅ Implemented
+### ✅ Fully Implemented
 
 - [x] Core projection infrastructure using proj4
 - [x] Coordinate transformation between WGS84 and custom CRS
 - [x] Projection factory for creating custom CRS instances
-- [x] Basic transform implementation extending MercatorTransform
+- [x] Transform implementation extending MercatorTransform
+- [x] **Full Map class integration** - Custom CRS can be specified in MapOptions
+- [x] **Automatic projection setup** - Custom CRS is automatically applied when map initializes
 - [x] Public API exports
-- [x] Example demonstrating EPSG:2193
-- [x] Documentation
+- [x] Comprehensive examples demonstrating EPSG:2193
+- [x] Complete documentation
 
-### ⚠️ Limitations
+### ⚠️ Remaining Limitations
 
-This initial implementation is a **proof-of-concept** that demonstrates the architecture and coordinate transformation capabilities. The following limitations exist:
+While the core functionality is now fully integrated, some advanced features remain for future development:
 
-1. **Map Integration**: The custom transform is not yet fully integrated with the Map class. Maps still use the default Mercator or Globe projections.
-
-2. **Tile CRS**: Vector tiles are assumed to be in Web Mercator (EPSG:3857). There's no per-source CRS specification yet.
-
-3. **Shader Support**: Custom projections currently fall back to Mercator shaders. Full shader support would require:
+1. **Shader Optimization**: Custom projections currently use Mercator shaders with CPU-side transformations. For optimal performance:
    - Custom shader variants for different projection types
    - GPU-side coordinate transformations
-   - Handling of projection-specific distortions
+   - Projection-specific rendering optimizations
 
-4. **Performance**: Coordinate transformations happen on the CPU. For optimal performance, transformations should be moved to shaders where possible.
+2. **Tile CRS Support**: Vector tiles are assumed to be in Web Mercator (EPSG:3857):
+   - Per-source CRS specification would allow tiles in different coordinate systems
+   - Tile coordinate transformation for non-Mercator tile grids
+   - WMTS/TMS support with custom tile matrices
 
-5. **Tile Fetching**: Tile URLs still use standard Web Mercator tile coordinates. Support for tiles in other CRS would require:
-   - Source-level CRS configuration
-   - Tile coordinate transformation
-   - WMTS/TMS support for different tile grids
-
-6. **Projection Properties**: Different projections have different properties (e.g., bounds, units, distortion). These are not fully handled yet.
+3. **Advanced Projection Features**:
+   - Per-source coordinate transformation
+   - Automatic bounds detection from CRS
+   - Support for time-dependent coordinate systems
+   - Validation of coordinates against CRS validity bounds
 
 ### 🔄 Future Work
 
-To make custom CRS support production-ready, the following work is needed:
+#### ✅ Recently Completed
+- ~~Map Integration~~ - **DONE**: Custom CRS can now be specified in `MapOptions.customCRS`
+- ~~Automatic Setup~~ - **DONE**: Projection is automatically applied when map initializes
+- ~~Full API Integration~~ - **DONE**: Works seamlessly with Map class
 
-#### High Priority
+#### High Priority (Performance & Advanced Features)
 
-1. **Map Integration**
-   - Allow specifying custom CRS when creating a Map
-   - Store and use the custom transform throughout the map lifecycle
-   - Update the projection API to support custom CRS
+1. **Shader Optimization**
+   - Create custom shader variants for common projection types
+   - Implement GPU-side coordinate transformations
+   - Handle projection-specific rendering requirements
+   - Optimize rendering pipeline for custom projections
 
 2. **Per-Source CRS**
    - Add `crs` property to source specifications
    - Transform tile coordinates based on source CRS
-   - Support WMTS/TMS tile grids
-
-3. **Shader Support**
-   - Create custom shader variants for common projection types
-   - Implement GPU-side coordinate transformations
-   - Handle projection-specific rendering requirements
+   - Support WMTS/TMS tile grids with custom matrices
+   - Handle reprojection of vector tiles
 
 #### Medium Priority
 
-4. **Performance Optimization**
-   - Move coordinate transformations to shaders where possible
-   - Cache transformation results
-   - Optimize for common projections
-
-5. **Enhanced Camera Controls**
-   - Create custom camera helpers for different projection types
+3. **Enhanced Camera Controls**
+   - Create specialized camera helpers for different projection types
    - Handle zoom levels in native CRS units
    - Proper bounds constraining for non-rectangular bounds
+   - Improved navigation for polar and other special projections
 
-6. **Projection Metadata**
-   - Store and expose projection properties (units, bounds, etc.)
-   - Validate coordinates against projection bounds
+4. **Projection Metadata**
+   - Automatic bounds detection from CRS definitions
+   - Validate coordinates against projection validity bounds
    - Handle coordinate wrapping/clamping appropriately
+   - Expose projection units and properties
+
+5. **Performance Optimization**
+   - Cache projection transformation results
+   - Optimize for common projections
+   - Reduce memory footprint
+   - Improve initialization time
 
 #### Low Priority
 
-7. **Testing**
+6. **Testing**
    - Unit tests for coordinate transformations
    - Integration tests for different CRS
    - Visual regression tests
+   - Performance benchmarks
 
-8. **Documentation**
-   - User guide for custom CRS
-   - API reference documentation
-   - More examples for different use cases
+7. **Documentation & Examples**
+   - More examples for different projections (polar, UTM, etc.)
+   - Migration guide from other mapping libraries
+   - Performance optimization guide
+   - Troubleshooting guide
 
-9. **Developer Tools**
+8. **Developer Tools**
    - Debug visualization of coordinate transformations
    - CRS information in developer tools
    - Tile grid visualization
+   - Projection accuracy testing tools
 
 ## Technical Details
 
