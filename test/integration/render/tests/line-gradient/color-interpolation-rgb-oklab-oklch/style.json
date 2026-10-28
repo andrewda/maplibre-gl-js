@@ -1,0 +1,188 @@
+{
+    "version": 8,
+    "metadata": {
+        "test": {
+            "description": "Tests results of color interpolation in sRGB/OKLab/OKLCH color spaces",
+            "width": 1024,
+            "height": 430,
+            "threshold": 0.01
+        }
+    },
+    "zoom": 1,
+    "sources": {
+        "geojson": {
+            "type": "geojson",
+            "lineMetrics": true,
+            "data": {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "properties": {"id": "1_rgb"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, 52], [180, 52] ]}
+                }, {
+                    "type": "Feature",
+                    "properties": {"id": "1_oklab"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, 42], [180, 42] ]}
+                }, {
+                    "type": "Feature",
+                    "properties": {"id": "1_oklch"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, 30], [180, 30] ]}
+                },{
+                    "type": "Feature",
+                    "properties": {"id": "2_rgb"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, 14.5], [180, 14.5] ]}
+                }, {
+                    "type": "Feature",
+                    "properties": {"id": "2_oklab"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, 0], [180, 0] ]}
+                }, {
+                    "type": "Feature",
+                    "properties": {"id": "2_oklch"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, -14.5], [180, -14.5] ]}
+                },{
+                    "type": "Feature",
+                    "properties": {"id": "3_rgb"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, -30], [180, -30] ]}
+                }, {
+                    "type": "Feature",
+                    "properties": {"id": "3_oklab"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, -42], [180, -42] ]}
+                }, {
+                    "type": "Feature",
+                    "properties": {"id": "3_oklch"},
+                    "geometry": {"type": "LineString", "coordinates": [ [-180, -52], [180, -52] ]}
+                }]
+            }
+        }
+    },
+    "layers": [{
+        "id": "test_1_rgb",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "1_rgb"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate", ["linear"], ["line-progress"],
+                0, "blue",
+                0.1, "royalblue",
+                0.3, "cyan",
+                0.5, "lime",
+                0.7, "yellow",
+                1, "red"
+            ]
+        }
+    }, {
+        "id": "test_1_oklab",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "1_oklab"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate-oklab", ["linear"], ["line-progress"],
+                0, "blue",
+                0.1, "royalblue",
+                0.3, "cyan",
+                0.5, "lime",
+                0.7, "yellow",
+                1, "red"
+            ]
+        }
+    }, {
+        "id": "test_1_oklch",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "1_oklch"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate-oklch", ["linear"], ["line-progress"],
+                0, "blue",
+                0.1, "royalblue",
+                0.3, "cyan",
+                0.5, "lime",
+                0.7, "yellow",
+                1, "red"
+            ]
+        }
+    }, {
+        "id": "test_2_rgb",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "2_rgb"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate", ["linear"], ["line-progress"],
+                0, "#1518e4",
+                1, "#a96011"
+            ]
+        }
+    }, {
+        "id": "test_2_oklab",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "2_oklab"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate-oklab", ["linear"], ["line-progress"],
+                0, "#1518e4",
+                1, "#a96011"
+            ]
+        }
+    }, {
+        "id": "test_2_oklch",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "2_oklch"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate-oklch", ["linear"], ["line-progress"],
+                0, "#1518e4",
+                1, "#a96011"
+            ]
+        }
+    }, {
+        "id": "test_3_rgb",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "3_rgb"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate", ["linear"], ["line-progress"],
+                0, "rgb(0% 50% 0%)",
+                1, "rgb(100% 65% 0%)"
+            ]
+        }
+    }, {
+        "id": "test_3_oklab",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "3_oklab"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate-oklab", ["linear"], ["line-progress"],
+                0, "rgb(0% 50% 0%)",
+                1, "rgb(100% 65% 0%)"
+            ]
+        }
+    }, {
+        "id": "test_3_oklch",
+        "type": "line",
+        "source": "geojson",
+        "filter": ["==", ["get", "id"], "3_oklch"],
+        "paint": {
+            "line-width": 40,
+            "line-gradient": [
+                "interpolate-oklch", ["linear"], ["line-progress"],
+                0, "rgb(0% 50% 0%)",
+                1, "rgb(100% 65% 0%)"
+            ]
+        }
+    }]
+}

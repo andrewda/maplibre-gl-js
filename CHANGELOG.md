@@ -1,5 +1,6 @@
 ## main
 ### ✨ Features and improvements
+- Support `oklab()` and `oklch()` colors and the `interpolate-oklab` and `interpolate-oklch` expressions ([maplibre-style-spec#852](https://github.com/maplibre/maplibre-style-spec/issues/852))
 - _...Add new stuff here..._
 
 ### 🐞 Bug fixes

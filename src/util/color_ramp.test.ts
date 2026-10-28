@@ -46,6 +46,26 @@ describe('renderColorRamp', () => {
         expect(nearlyEquals(pixelAt(ramp, 255), [255, 0, 0, 255])).toBeTruthy();
     });
 
+    test('renderColorRamp with oklch colors and interpolate-oklch', () => {
+
+        const expression = createPropertyExpression([
+            'interpolate-oklch',
+            ['linear'],
+            ['line-progress'],
+            0, 'oklch(62.8% 0.2577 29.23)',
+            0.5, 'white',
+            1, 'blue'
+        ], 'line-gradient', spec).value as StylePropertyExpression;
+
+        const ramp = renderColorRamp({expression, evaluationKey: 'lineProgress'});
+
+        expect(nearlyEquals(pixelAt(ramp, 0), [255, 0, 0, 255])).toBeTruthy();
+        // the hue of red is kept while chroma decreases towards white
+        expect(nearlyEquals(pixelAt(ramp, 64), [255, 161, 145, 255])).toBeTruthy();
+        expect(nearlyEquals(pixelAt(ramp, 128), [255, 255, 255, 255])).toBeTruthy();
+        expect(nearlyEquals(pixelAt(ramp, 255), [0, 0, 255, 255])).toBeTruthy();
+    });
+
     test('renderColorRamp step', () => {
 
         const expression = createPropertyExpression([
